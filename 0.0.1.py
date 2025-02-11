@@ -14,8 +14,8 @@ filter_keywords_map = {
 }
 
 # Telegram configuration
-api_id = '23915883'
-api_hash = '65e4eb003c4c72c460d0bc76592876b3'
+api_id = ''
+api_hash = ''
 channels = ['sysadm_in_channel','thehackernews','mb_cyber','mrkhalidtest']
 
 # Logging configuration
