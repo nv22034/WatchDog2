@@ -1,6 +1,9 @@
 import json
 import asyncio
 import logging
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from telethon.sync import TelegramClient, events, types
 import requests
 
@@ -34,6 +37,31 @@ async def send_discord_message(text, webhook_url):
     except requests.RequestException as e:
         logger.error(f"Error sending message to Discord: {e}")
 
+# Function to send email alert
+def send_email(subject, body, recipient_email):
+    sender_email = "your_email@gmail.com"  # Your Gmail address
+    sender_password = "your_password"  # Your Gmail app password or password (if you have 2FA enabled, use an app password)
+
+    # Set up the email server
+    try:
+        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+        server.login(sender_email, sender_password)
+
+        # Prepare the email content
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = recipient_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        # Send the email
+        server.sendmail(sender_email, recipient_email, msg.as_string())
+        server.quit()
+
+        logger.info("Email sent successfully!")
+    except Exception as e:
+        logger.error(f"Error sending email: {e}")
+
 # Main asynchronous function
 async def main():
     try:
@@ -62,6 +90,12 @@ async def main():
                         alert_text += f"\nRisk Alert: {risk_level}"
                         await send_discord_message(alert_text, webhook_url)
                         logger.info(f"{risk_level.capitalize()} alert message sent to Discord")
+
+                        # Send an email alert
+                        subject = f"Suspicious Message Detected: {risk_level.capitalize()}"
+                        body = f"Message from {sender.username} in {channel.title}:\n{message}\n\n{alert_text}"
+                        recipient_email = "recipient_email@example.com"  # Change to desired recipient
+                        send_email(subject, body, recipient_email)
                     break  # Stop checking after a match is found
 
         except asyncio.CancelledError:

@@ -11,5 +11,6 @@
       "red": "https://discord.com/api/webhooks/RED_URL",
       "yellow": "https://discord.com/api/webhooks/YELLOW_URL",
       "green": "https://discord.com/api/webhooks/GREEN_URL"
-    }
+    },
+    "email_recipient": "recipient_email@example.com" 
   }
