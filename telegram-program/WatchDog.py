@@ -1,11 +1,10 @@
 import json
 import asyncio
 import logging
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from telethon.sync import TelegramClient, events, types
 import requests
+from transformers import pipeline  # Hugging Face's pre-trained model
+import torch
 
 # Load settings from config.json
 def load_config():
@@ -26,6 +25,10 @@ logger = logging.getLogger(__name__)
 # Create a Telegram client instance
 client = TelegramClient('anon', api_id, api_hash)
 
+# Load the pre-trained model for offensive language detection
+model_name = "distilbert-base-uncased"  # A smaller version of BERT
+classifier = pipeline("text-classification", model=model_name, tokenizer=model_name)
+
 # Function to send a message to Discord using a webhook
 async def send_discord_message(text, webhook_url):
     headers = {'Content-Type': 'application/json'}
@@ -37,30 +40,11 @@ async def send_discord_message(text, webhook_url):
     except requests.RequestException as e:
         logger.error(f"Error sending message to Discord: {e}")
 
-# Function to send email alert
-def send_email(subject, body, recipient_email):
-    sender_email = "your_email@gmail.com"  # Your Gmail address
-    sender_password = "your_password"  # Your Gmail app password or password (if you have 2FA enabled, use an app password)
-
-    # Set up the email server
-    try:
-        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
-        server.login(sender_email, sender_password)
-
-        # Prepare the email content
-        msg = MIMEMultipart()
-        msg['From'] = sender_email
-        msg['To'] = recipient_email
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'plain'))
-
-        # Send the email
-        server.sendmail(sender_email, recipient_email, msg.as_string())
-        server.quit()
-
-        logger.info("Email sent successfully!")
-    except Exception as e:
-        logger.error(f"Error sending email: {e}")
+# Function to classify the message using the ML model
+def classify_message(message):
+    result = classifier(message)
+    label = result[0]['label']
+    return label
 
 # Main asynchronous function
 async def main():
@@ -82,7 +66,20 @@ async def main():
             alert_text = f"Telegram Alert\nChannel: {channel.title}\nUser: {sender.username}\nMessage: {message}"
             logger.info(f"Message received from {sender.username} in {channel.title}: {message}")
 
-            # Check for alerts
+            # Classify the message using the ML model
+            label = classify_message(message)
+            logger.info(f"Message classification result: {label}")
+
+            # Check for offensive language
+            if label == "LABEL_1":  # Assuming "LABEL_1" represents offensive language (depends on the model's output)
+                # Send alert
+                webhook_url = config["webhooks"].get("red", "")
+                if webhook_url:
+                    alert_text += f"\nRisk Alert: Offensive Language"
+                    await send_discord_message(alert_text, webhook_url)
+                    logger.info(f"Offensive language alert sent to Discord")
+
+            # Check for other alerts based on keywords
             for risk_level, keywords in config["filter_keywords"].items():
                 if any(keyword.lower() in message for keyword in keywords):
                     webhook_url = config["webhooks"].get(risk_level, "")
@@ -90,15 +87,6 @@ async def main():
                         alert_text += f"\nRisk Alert: {risk_level}"
                         await send_discord_message(alert_text, webhook_url)
                         logger.info(f"{risk_level.capitalize()} alert message sent to Discord")
-
-                        # Send an email alert
-                        subject = f"Suspicious Message Detected: {risk_level.capitalize()}"
-                        body = f"Message from {sender.username} in {channel.title}:\n{message}\n\n{alert_text}"
-                        # Get email recipient from config.json
-                        recipient_email = config["email_recipient"]
-
-                        send_email(subject, body, recipient_email)
-                    break  # Stop checking after a match is found
 
         except asyncio.CancelledError:
             logger.warning("Event handler cancelled")
