@@ -94,7 +94,9 @@ async def main():
                         # Send an email alert
                         subject = f"Suspicious Message Detected: {risk_level.capitalize()}"
                         body = f"Message from {sender.username} in {channel.title}:\n{message}\n\n{alert_text}"
-                        recipient_email = "recipient_email@example.com"  # Change to desired recipient
+                        # Get email recipient from config.json
+                        recipient_email = config["email_recipient"]
+
                         send_email(subject, body, recipient_email)
                     break  # Stop checking after a match is found
 
