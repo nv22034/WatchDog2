@@ -1,0 +1,15 @@
+{
+    "api_id": "23553411",
+    "api_hash": "8d498a3e47633b2384c29024f8ea45e9",
+    "channels": ["sysadm_in_channel", "thehackernews", "mb_cyber", "mrkhalidtest"],
+    "filter_keywords": {
+      "red": ["hack", "security", "DDoS", "edu.bh"],
+      "yellow": ["BAPCO", "Batelco", "Bahrain", "nasser school", "nasser vocational training center"],
+      "green": ["NVTC", "Bahrain", "bh", "bd"]
+    },
+    "webhooks": {
+      "red": "https://discord.com/api/webhooks/RED_URL",
+      "yellow": "https://discord.com/api/webhooks/YELLOW_URL",
+      "green": "https://discord.com/api/webhooks/GREEN_URL"
+    }
+  }
